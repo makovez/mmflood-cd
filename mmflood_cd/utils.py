@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from mmflood_cd.models import GeoData, ImageDate
+from mmflood_cd.models import FloodEvent, ImageDate
 from datetime import datetime
 
 import pyproj
@@ -7,7 +7,8 @@ import pyproj
 
 def generate_date_range(start_date_str, previous_days=30, max_range=7):
     # Convert the input date string to a datetime object
-    start_date = datetime.strptime(start_date_str, "%Y-%m-%dT%H:%M:%S")
+    format_date = "%Y-%m-%dT%H:%M:%SZ" if 'Z' in start_date_str else "%Y-%m-%dT%H:%M:%S"
+    start_date = datetime.strptime(start_date_str, format_date)
 
     # Subtract 1 month from the start date
     one_month_ago = start_date - timedelta(days=previous_days)
@@ -34,17 +35,17 @@ def today():
 
 
 
-def get_width_height(geodata: GeoData, resolution = 10):
+def get_width_height(flood_data: FloodEvent, resolution = 10):
 
     #left=-1.0955564400233835, bottom=41.72942461192168, right=-1.0246875, top=41.800414224444346
 
     # Convert bounding box coordinates to UTM projection
-    utm_zone = int((geodata.left + geodata.right) // 6) + 31  # UTM zone calculation for WGS 84
+    utm_zone = int((flood_data.left + flood_data.right) // 6) + 31  # UTM zone calculation for WGS 84
     utm_crs = f'+proj=utm +zone={utm_zone} +ellps=WGS84 +datum=WGS84 +units=m +no_defs'
     wgs84_crs = 'EPSG:4326'
     transformer = pyproj.Transformer.from_crs(wgs84_crs, utm_crs, always_xy=True)
-    minx, miny = transformer.transform(geodata.left, geodata.bottom)
-    maxx, maxy = transformer.transform(geodata.right, geodata.top)
+    minx, miny = transformer.transform(flood_data.left, flood_data.bottom)
+    maxx, maxy = transformer.transform(flood_data.right, flood_data.top)
 
     # Calculate width and height in pixels
     width = int((maxx - minx) / resolution)
@@ -58,3 +59,5 @@ def get_evalscript():
         data = f.read()
     
     return data
+
+

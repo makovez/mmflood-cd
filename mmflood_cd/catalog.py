@@ -1,8 +1,9 @@
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 import yaml, requests
-from mmflood_cd.models import Config, GeoData
-from mmflood_cd.utils import generate_date_range, today, get_width_height, get_evalscript
+from typing import List
+from mmflood_cd.models import Config, FloodEvent, SARImage
+from mmflood_cd.utils import generate_date_range
 
 class Catalog:
     def __init__(self, config_file: str) -> None:
@@ -27,7 +28,12 @@ class Catalog:
         print(f"Token: {token}")
         return self.oauth
     
-    def search(self, data: GeoData, prod_type: str = "sentinel-1-grd", previous_days=30, max_range=7) -> requests.Response:
+    def map_object(self, sar_dict) -> SARImage:
+        preview_image = sar_dict['assets']['thumbnail']['href']
+        sar_dict.update({'preview_image':preview_image})
+        return SARImage(**sar_dict['properties'], **sar_dict)  
+    
+    def search(self, data: FloodEvent, prod_type: str = "sentinel-1-grd", previous_days=30, max_range=7) -> SARImage:
         
         image_date = generate_date_range(data.acquisition_date, previous_days=previous_days, max_range=max_range)
         data = {
@@ -41,7 +47,17 @@ class Catalog:
         url = "https://services.sentinel-hub.com/api/v1/catalog/1.0.0/search"
         headers = {"Content-Type": "application/json"}
         response = self.oauth.post(url, headers=headers, json=data)
+        try:
+            return self.map_object(response.json()['features'][0])
+        except:
+            return None
+    
+    def search_all(self, data: FloodEvent, dates: list) -> List[SARImage]:
+        sar_images = []
+        for previous_days, max_range in dates:
+            img = self.search(data, previous_days=previous_days, max_range=max_range)
+            if img: sar_images += [img]
 
-        return response.json()
+        return sar_images
     
 

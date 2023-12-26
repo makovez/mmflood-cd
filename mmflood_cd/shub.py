@@ -13,7 +13,7 @@ from rasterio.io import MemoryFile
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 from typing import List, Union
-from mmflood_cd.models import Config, SARImage
+from mmflood_cd.models import Config, SARImage, FloodEvent
 from mmflood_cd.utils import generate_date_range, today, get_width_height, get_evalscript
 
 class Shub:
@@ -36,20 +36,19 @@ class Shub:
     def set_token(self) -> OAuth2Session:
         # Get token for the session
         token = self.oauth.fetch_token(
-            token_url='https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token',
+            token_url='https://services.sentinel-hub.com/auth/realms/main/protocol/openid-connect/token',
             client_secret=self.client_secret
         )
         print(f"Token: {token}")
         return self.oauth
     
-
-    def get_image(self, data: SARImage, prod_type: str = "sentinel-1-grd") -> requests.Response:
+    def get_image(self, flood_event: FloodEvent, data: SARImage, prod_type: str = "sentinel-1-grd") -> requests.Response:
         image_date = generate_date_range(data.acquisition_date, previous_days=0, max_range=1)
-        width, height = get_width_height(data)
+        #width, height = get_width_height(flood_event)
         data = {
             "input": {
                 "bounds": {
-                    "bbox": data.bbox()
+                    "bbox": flood_event.bbox()
                 },
                 "data": [
                     {
@@ -67,41 +66,43 @@ class Shub:
                     }
                 ]
             },
+
             "output": {
-                "width": width,
-                "height": height,
+                "width": flood_event.width,
+                "height": flood_event.height,
                 "responses": [
                     {
                         "identifier": "default",
-                        "format": {
-                            "type": "image/tiff"
-                        }
+                        "format": {"type": "image/tiff"},
+                    },
+                    {
+                        "identifier": "userdata",
+                        "format": {"type": "application/json"},
                     }
                 ]
             },
             "evalscript": get_evalscript()
         }
-
-        url = "https://sh.dataspace.copernicus.eu/api/v1/process"
+        
+        #url = "https://sh.dataspace.copernicus.eu/api/v1/process" #, "Accept":"application/tar"
+        url = "https://services.sentinel-hub.com/api/v1/process"
         response = self.oauth.post(url, headers={"Content-Type": "application/json"}, json=data)
 
         return response.content
 
-    def download_image(self, checksum: str, data: Union[bytes, bytearray]) -> None:
-
+    def download_image(self, flood_event: FloodEvent, image: SARImage, data: Union[bytes, bytearray]) -> None:
         # tar = tarfile.open(fileobj=io.BytesIO(data))
         # userdata = json.load(tar.extractfile(tar.getmember('userdata.json')))
         # data = tar.extractfile(tar.getmember('default.tif'))
+        os.makedirs(os.path.join(self.directory_path, flood_event.name), exist_ok=True)
         with MemoryFile(data) as memfile:
             with memfile.open() as dataset:
                 left, bottom, right, top = dataset.bounds
                 print(f"Left: {left}, Bottom: {bottom}, Right: {right}, Top: {top}")
 
-                output_file_path = os.path.join(self.directory_path, checksum + '.tif')
+                output_file_path = os.path.join(self.directory_path, flood_event.name, image.id + '.tif')
                 with rasterio.open(output_file_path, 'w', **dataset.profile) as dst:
                     dst.write(dataset.read())
 
                 print(f"GeoTIFF saved to {output_file_path}")
-
-
-
+    

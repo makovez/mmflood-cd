@@ -1,24 +1,38 @@
-from mmflood_cd import Shub
-from mmflood_cd.models import GeoData
+from mmflood_cd import Shub, Catalog
+from mmflood_cd.models import FloodEvent
 import json, os
 
 with open('metadata.json', 'r') as file:
     images = json.load(file)
 
+catalog = Catalog('config.yaml')
 shub = Shub('config.yaml', root_path='data')
 
-lgeodata = []
-days_image = [(30, 7), (60, 7), (120, 7), (240, 7)]
+flood_events = []
+dates_image = [(30, 7), (60, 7), (120, 7)]
+
 # Now 'data' is a list of dictionaries, and you can access the values as needed
-for entry in images[:10]:
-    geodata = GeoData.parse_obj(entry)
+for entry in images:
+    flood_event = FloodEvent.parse_obj(entry)
+    images = catalog.search_all(flood_event, dates_image)
+    flood_event.images += images
+
+    # for image in images:
+    #     data = shub.get_image(flood_event, image)
+    #     shub.download_image(flood_event, image, data)
+    
+    flood_events.append(flood_event)
     #for i in days_image:
-    data = shub.get_image(geodata, previous_days=60, max_range=30)
-    print(geodata.checksum)
-    shub.download_image(geodata.checksum, data)
-    lgeodata.append(geodata)
+    # data = shub.get_image(flood_event, previous_days=60, max_range=30)
+    # print(geodata.checksum)
+    # shub.download_image(geodata.checksum, data)
+    # lgeodata.append(geodata)
 
 
-file_path = 'metadata.json'
-with open(os.path.join(shub.directory_path, file_path), 'w') as file:
-    json.dump([geodata.dict() for geodata in lgeodata], file, indent=2)
+json_file_path = "flood_events.json"
+with open(os.path.join(shub.directory_path, json_file_path), 'w') as json_file:
+    json.dump([event.dict() for event in flood_events], json_file)
+
+# file_path = 'metadata.json'
+# with open(os.path.join(shub.directory_path, file_path), 'w') as file:
+#     json.dump([geodata.dict() for geodata in lgeodata], file, indent=2)

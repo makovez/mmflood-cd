@@ -19,10 +19,6 @@ class SARImage(BaseModel):
     instrument_mode: str
     polarization: str
     preview_image: str
-    __resolution_range: int
-    __resolution_azimuth: int
-    __pixel_spacing_range: int
-    __pixel_spacing_azimuth: int
 
     class Config:
         fields = {
@@ -32,10 +28,6 @@ class SARImage(BaseModel):
             'relative_orbit':'sat:relative_orbit',
             'instrument_mode':'sar:instrument_mode',
             'polarization':'s1:polarization',
-            '__resolution_range':'sar:resolution_range',
-            '__resolution_azimuth':'sar:resolution_azimuth',
-            '__pixel_spacing_range':'sar:pixel_spacing_range',
-            '__pixel_spacing_azimuth':'sar:pixel_spacing_azimuth'
             }
     
 

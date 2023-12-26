@@ -29,7 +29,7 @@ function setup() {
   function evaluatePixel(samples) {
     // Your JavaScript code here
     return {
-      default: [samples.VV, samples.VH],
+      default: [samples[0].VV, samples[0].VH],
     };
   }
   
