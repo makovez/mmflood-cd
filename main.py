@@ -15,12 +15,13 @@ dates_image = [(7, 7), (30, 7), (60, 7), (90, 7), (120, 7), (340, 7)]
 for entry in images:
     flood_event = FloodEvent.model_validate(entry)
     images = catalog.search_all(flood_event, dates_image)
-    flood_event.images += images
+    # flood_event.images += images
 
     for image in images:
         data = shub.get_image(flood_event, image)
-        shub.download_image(flood_event, image, data)
-    
+        if data:
+            shub.download_image(flood_event, image, data)
+            images.append(image)
     flood_events.append(flood_event)
     #for i in days_image:
     # data = shub.get_image(flood_event, previous_days=60, max_range=30)

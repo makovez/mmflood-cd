@@ -42,7 +42,7 @@ class Shub:
         print(f"Token: {token}")
         return self.oauth
     
-    def get_image(self, flood_event: FloodEvent, data: SARImage, prod_type: str = "sentinel-1-grd") -> requests.Response:
+    def get_image(self, flood_event: FloodEvent, data: SARImage, prod_type: str = "sentinel-1-grd", retry = 0) -> requests.Response:
         image_date = generate_date_range(data.acquisition_date, previous_days=0, max_range=1)
         #width, height = get_width_height(flood_event)
         data = {
@@ -88,12 +88,16 @@ class Shub:
         url = "https://services.sentinel-hub.com/api/v1/process"
         response = self.oauth.post(url, headers={"Content-Type": "application/json"}, json=data)
 
-        return response.content
+        if len(response.content) < 10000 and retry < 3:
+            return self.get_image(flood_event, data, prod_type, retry = retry + 1)
+        
+        return response.content if len(response.content) > 10000 else None
 
     def download_image(self, flood_event: FloodEvent, image: SARImage, data: Union[bytes, bytearray]) -> None:
         # tar = tarfile.open(fileobj=io.BytesIO(data))
         # userdata = json.load(tar.extractfile(tar.getmember('userdata.json')))
         # data = tar.extractfile(tar.getmember('default.tif'))
+        print(len(data))
         os.makedirs(os.path.join(self.directory_path, flood_event.name), exist_ok=True)
         with MemoryFile(data) as memfile:
             with memfile.open() as dataset:

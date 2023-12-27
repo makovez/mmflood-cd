@@ -4,3 +4,5 @@
 
 test*
 !config_example.yaml
+data/*
+!data/.gitkeep

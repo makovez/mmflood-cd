@@ -1,2 +1,5 @@
 requests-oauthlib
 pyyaml
+rasterio
+pydantic
+pyproj
