@@ -21,7 +21,7 @@ for entry in images:
         data = shub.get_image(flood_event, image)
         if data:
             shub.download_image(flood_event, image, data)
-            images.append(image)
+            flood_event.images.append(image)
     flood_events.append(flood_event)
     #for i in days_image:
     # data = shub.get_image(flood_event, previous_days=60, max_range=30)
