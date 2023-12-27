@@ -42,8 +42,8 @@ class Shub:
         print(f"Token: {token}")
         return self.oauth
     
-    def get_image(self, flood_event: FloodEvent, data: SARImage, prod_type: str = "sentinel-1-grd", retry = 0) -> requests.Response:
-        image_date = generate_date_range(data.acquisition_date, previous_days=0, max_range=1)
+    def get_image(self, flood_event: FloodEvent, sar_image: SARImage, prod_type: str = "sentinel-1-grd", retry = 0) -> requests.Response:
+        image_date = generate_date_range(sar_image.acquisition_date, previous_days=0, max_range=1)
         #width, height = get_width_height(flood_event)
         data = {
             "input": {
@@ -89,7 +89,7 @@ class Shub:
         response = self.oauth.post(url, headers={"Content-Type": "application/json"}, json=data)
 
         if len(response.content) < 10000 and retry < 3:
-            return self.get_image(flood_event, data, prod_type, retry = retry + 1)
+            return self.get_image(flood_event, sar_image, prod_type, retry = retry + 1)
         
         return response.content if len(response.content) > 10000 else None
 
