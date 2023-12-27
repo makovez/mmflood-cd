@@ -1,5 +1,5 @@
 from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 
 class Config(BaseModel):
     client_id: str
@@ -12,23 +12,18 @@ class ImageDate(BaseModel):
 
 class SARImage(BaseModel):
     id: str
-    acquisition_date: str
-    orbit_direction: str
-    absolute_orbit: int
-    relative_orbit:int
-    instrument_mode: str
-    polarization: str
+    acquisition_date: str = Field(alias='datetime')
+    orbit_direction: str = Field(alias='sat:orbit_state')
+    absolute_orbit: int = Field(alias='sat:absolute_orbit')
+    relative_orbit:int = Field(alias='sat:relative_orbit')
+    instrument_mode: str = Field(alias='sar:instrument_mode')
+    polarization: str = Field(alias='s1:polarization')
     preview_image: str
 
-    class Config:
-        fields = {
-            'acquisition_date': 'datetime',
-            'orbit_direction': 'sat:orbit_state',
-            'absolute_orbit': 'sat:absolute_orbit',
-            'relative_orbit':'sat:relative_orbit',
-            'instrument_mode':'sar:instrument_mode',
-            'polarization':'s1:polarization',
-            }
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+        
     
 
 class FloodEvent(BaseModel):

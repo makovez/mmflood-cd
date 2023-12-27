@@ -9,17 +9,17 @@ catalog = Catalog('config.yaml')
 shub = Shub('config.yaml', root_path='data')
 
 flood_events = []
-dates_image = [(30, 7), (60, 7), (120, 7)]
+dates_image = [(7, 7), (30, 7), (60, 7), (90, 7), (120, 7), (340, 7)]
 
 # Now 'data' is a list of dictionaries, and you can access the values as needed
 for entry in images:
-    flood_event = FloodEvent.parse_obj(entry)
+    flood_event = FloodEvent.model_validate(entry)
     images = catalog.search_all(flood_event, dates_image)
     flood_event.images += images
 
-    # for image in images:
-    #     data = shub.get_image(flood_event, image)
-    #     shub.download_image(flood_event, image, data)
+    for image in images:
+        data = shub.get_image(flood_event, image)
+        shub.download_image(flood_event, image, data)
     
     flood_events.append(flood_event)
     #for i in days_image:
