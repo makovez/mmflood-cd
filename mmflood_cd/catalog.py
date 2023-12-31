@@ -29,8 +29,6 @@ class Catalog:
         return self.oauth
     
     def map_object(self, sar_dict) -> SARImage:
-        preview_image = sar_dict['assets']['thumbnail']['href']
-        sar_dict.update({'preview_image':preview_image})
         return SARImage(**sar_dict['properties'], **sar_dict)  
     
     def search(self, data: FloodEvent, prod_type: str = "sentinel-1-grd", previous_days=30, max_range=7) -> SARImage:

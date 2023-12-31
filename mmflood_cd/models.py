@@ -18,7 +18,6 @@ class SARImage(BaseModel):
     relative_orbit:int = Field(alias='sat:relative_orbit')
     instrument_mode: str = Field(alias='sar:instrument_mode')
     polarization: str = Field(alias='s1:polarization')
-    preview_image: str
 
     model_config = ConfigDict(
         populate_by_name=True,
