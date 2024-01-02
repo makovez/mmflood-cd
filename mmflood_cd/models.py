@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 class Config(BaseModel):
@@ -18,6 +18,7 @@ class SARImage(BaseModel):
     relative_orbit:int = Field(alias='sat:relative_orbit')
     instrument_mode: str = Field(alias='sar:instrument_mode')
     polarization: str = Field(alias='s1:polarization')
+    preview_image: Optional[str] = None
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -38,9 +39,11 @@ class FloodEvent(BaseModel):
     width: int
     height: int
     images: List[SARImage] = []
+    preview_image: Optional[str] = None
+    preview_mask: Optional[str] = None
 
     def bbox(self):
         return [self.left, self.bottom, self.right, self.top]
-
+    
     
 

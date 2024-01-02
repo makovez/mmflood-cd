@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Preview App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        #container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            padding: 20px;
+        }
+
+        .bounding-box {
+            margin: 10px;
+            /* border: 1px solid #ccc;
+            padding: 10px; */
+            cursor: pointer;
+            /* background-color: #fff; */
+            text-align: center;
+            transition: transform 0.2s;
+            max-width: 300px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .bounding-box:hover {
+            transform: scale(1.05);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            /* background-color: #fff; */
+            padding: 20px;
+            max-width: 80%;
+            max-height: 80%;
+            overflow: auto;
+            display: flex;
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            color: #fff;
+            font-size: xxx-large;
+        }
+
+        .time-series-image {
+            max-width: 100%;
+            height: auto;
+            margin: 10px;
+        }
+
+        .mmflood-image {
+            max-width: 100%;
+            height: auto;
+            margin: 10px;
+        }
+
+        .image-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5); /* Transparent black background */
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .image-container {
+            color: #fff;
+            position: relative;
+            max-width: 300px;
+        }
+
+        .time-series-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            color: #fff;
+        }
+
+        #timeSeriesContainer .mmflood-image {
+            border-style: solid;
+            border-color: red;
+            max-width: 300px;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div id="container"></div>
+
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <!-- <div class="mmflood-event">
+                <p id="eventName"></p>
+                <p id="eventDate"></p>
+                <p id="acquisitionDate"></p>
+                <div class="image-conainer">
+                    <img class="floodEvent"></img>
+                    <img class="floodMask"></img>
+                </div>
+            </div> -->
+            <div id="timeSeriesContainer" class="time-series-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById("container");
+        const modal = document.getElementById("myModal");
+        const timeSeriesContainer = document.getElementById("timeSeriesContainer");
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // Fetch data from the API endpoint
+            fetch("/api/data")
+                .then(response => response.json())
+                .then(data => renderBoundingBoxes(data));
+        });
+
+        // Function to render bounding boxes
+        function renderBoundingBoxes(dataset) {
+            dataset.forEach(emsrEvent => {
+                const boundingBoxElement = document.createElement("div");
+                const filteredImages = emsrEvent.images.filter(image => image.preview_image !== null);
+                const numberOfImages = filteredImages.length;
+
+                boundingBoxElement.className = "bounding-box";
+                boundingBoxElement.innerHTML = `
+                    <p><b>${emsrEvent.name}</b></p>
+                    <p>${emsrEvent.event_date}</p>
+                    <p>Images: ${numberOfImages}</p>
+                    <div class="image-container">
+                        <img class='mmflood-image' src='${emsrEvent.preview_image}'></img>    
+                    </div>
+                `;
+                boundingBoxElement.addEventListener("click", () => showTimeSeries(emsrEvent));
+                container.appendChild(boundingBoxElement);
+            });
+        }
+
+        // Function to show time series
+        function showTimeSeries(emsrEvent) {
+            timeSeriesContainer.innerHTML = "";
+            // Create and append the mmflood-event div dynamically
+            const mmFloodEventDiv = document.createElement("div");
+
+            const mmflood_info = document.createElement("div");
+            mmFloodEventDiv.className = "mmflood-event";
+
+            // Create and append the eventName paragraph
+            const eventNameParagraph = document.createElement("p");
+            eventNameParagraph.textContent = `Event Name: ${emsrEvent.name}`;
+            mmflood_info.appendChild(eventNameParagraph);
+
+            // Create and append the eventDate paragraph
+            const eventDateParagraph = document.createElement("p");
+            eventDateParagraph.textContent = `Event Date: ${emsrEvent.event_date}`;
+            mmflood_info.appendChild(eventDateParagraph);
+
+            // Create and append the acquisitionDate paragraph
+            const acquisitionDateParagraph = document.createElement("p");
+            acquisitionDateParagraph.textContent = `Acquisition Date: ${emsrEvent.acquisition_date}`;
+            mmflood_info.appendChild(acquisitionDateParagraph);
+
+            // Create and append the acquisitionDate paragraph
+            const countryParagraph = document.createElement("p");
+            countryParagraph.textContent = `Country: ${emsrEvent.country}`;
+            mmflood_info.appendChild(countryParagraph);
+
+            // Create and append the eventDate paragraph
+            const emsLink = document.createElement("a");
+            emsLink.textContent = 'Go to ems';
+            emsLink.target = '_blank';
+            emsLink.href = `https://emergency.copernicus.eu/mapping/list-of-components/${emsrEvent.code.split('-')[0]}`
+            mmflood_info.appendChild(emsLink);
+
+            // Create and append the floodEvent image
+            const floodEventImage = document.createElement("img");
+            floodEventImage.className = "mmflood-image";
+            floodEventImage.src = emsrEvent.preview_image;
+            floodEventImage.alt = `Flood Event Image for ${emsrEvent.name}`;
+            floodEventImage.title = `Flood Event Image for ${emsrEvent.name}`;
+            mmFloodEventDiv.appendChild(floodEventImage);
+
+            // Create and append the floodMask image
+            const floodMaskImage = document.createElement("img");
+            floodMaskImage.className = "mmflood-image";
+            floodMaskImage.src = emsrEvent.preview_mask;
+            floodMaskImage.alt = `Flood Mask Image for ${emsrEvent.name}`;
+            floodMaskImage.title = `Flood Mask Image for ${emsrEvent.name}`;
+            mmFloodEventDiv.appendChild(floodMaskImage);
+            
+            // Append the image container to the main container
+            timeSeriesContainer.appendChild(mmflood_info);
+            timeSeriesContainer.appendChild(mmFloodEventDiv);
+            
+
+            emsrEvent.images.forEach((image, index) => {
+                console.log(image)
+                const imageContainer = document.createElement("div");
+                imageContainer.className = "image-container";
+
+                const imageElement = document.createElement("img");
+                imageElement.className = "time-series-image";
+                imageElement.src = image.preview_image;
+                imageElement.alt = `Image for ${emsrEvent.name}`;
+                imageElement.title = `Image for ${emsrEvent.name}`;
+
+                // Append the image element to the container
+                imageContainer.appendChild(imageElement);
+
+                // Create a paragraph element for acquisition date
+                const acquisitionDateElement = document.createElement("p");
+                acquisitionDateElement.textContent = `Acquisition Date: ${image.acquisition_date}`;
+                imageContainer.appendChild(acquisitionDateElement);
+
+                // Create a paragraph element for relative orbit
+                const relativeOrbitElement = document.createElement("p");
+                relativeOrbitElement.textContent = `Relative Orbit: ${image.relative_orbit}`;
+                imageContainer.appendChild(relativeOrbitElement);
+
+                // Create a div element for the overlay
+                const overlayElement = document.createElement("div");
+                overlayElement.className = "image-overlay";
+                overlayElement.textContent = index; // Display array index
+                imageContainer.appendChild(overlayElement);
+
+
+                timeSeriesContainer.appendChild(imageContainer);
+                
+            });
+
+        
+
+            modal.style.display = "flex";
+        }
+        
+        // Function to close the modal
+        function closeModal() {
+                modal.style.display = "none";
+            }
+
+        // Close the modal if the user clicks outside of it
+        window.onclick = function (event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+    </script>
+</body>
+
+</html>

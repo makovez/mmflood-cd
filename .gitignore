@@ -5,4 +5,5 @@
 test*
 !config_example.yaml
 data/*
+emsr/*
 !data/.gitkeep
