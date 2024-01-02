@@ -35,7 +35,10 @@ The project involves the retrieval of Sentinel-HUB images using their API. The p
 The project will generate a JSON file containing the time series information along with the path and dates of post-flood images.
 
 ### 4. Web page to view the images and explore dataset
+The dataset containts in the main page informations about the flood event with the preview image generated from mmflood dataset directly.
 
 ![Main-Page](https://github.com/makovez/mmflood-cd/assets/21694707/8b52a864-48b6-47fc-9e21-d3d855d944d9)
+
+When an event is clicked a modal is opened with the information about the specific EMSR event. The first two red boxes images contains respecively the mmflood image and the mmflood mask. The other images range from 0-6 (where available). Where 0 refers to the image after the flood event retrieved via sentinel-api (which should be similar to the mmflood image), the others are previous images from the most to the least recent.
 
 ![flood-event](https://github.com/makovez/mmflood-cd/assets/21694707/14ec1dcb-24d5-48c4-9b2c-f1c669bd2727)
