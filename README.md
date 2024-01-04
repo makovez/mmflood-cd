@@ -6,6 +6,8 @@
 
 The aim of this project is to augment the mmflood dataset by incorporating pre-flood images. The dataset will include the following information for each image:
 
+A demo of the dataset is available to view here: https://optuna.cokyc.it
+
 ### 1. Dataset Information
 
 - Bounding Box
