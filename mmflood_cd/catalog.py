@@ -31,30 +31,56 @@ class Catalog:
     def map_object(self, sar_dict) -> SARImage:
         return SARImage(**sar_dict['properties'], **sar_dict)  
     
-    def search(self, data: FloodEvent, prod_type: str = "sentinel-1-grd", previous_days=30, max_range=7) -> SARImage:
+    def search(self, data: FloodEvent, prod_type: str = "sentinel-1-grd", previous_days=30, max_range_before=7, max_range_after=7, relative_orbit = None, most_recent = True) -> SARImage:
+
         
-        image_date = generate_date_range(data.acquisition_date, previous_days=previous_days, max_range=max_range)
+        image_date = generate_date_range(data.event_date, previous_days=previous_days, max_range_before=max_range_before, max_range_after=max_range_after)
         data = {
             "bbox": data.bbox(),
             "datetime": f"{image_date.start_date}/{image_date.end_date}",
             "collections": [prod_type],
-            "limit": 5,
+            "limit": 100,
             "filter": "sar:instrument_mode=\'IW\'"
         }
 
         url = "https://services.sentinel-hub.com/api/v1/catalog/1.0.0/search"
         headers = {"Content-Type": "application/json"}
         response = self.oauth.post(url, headers=headers, json=data)
+
+        # priority to orbit rather then time preference
+        if relative_orbit:
+            for image in response.json()['features']:
+                if image['properties']['sat:relative_orbit'] == relative_orbit:
+                    return self.map_object(image) # get orbit preference
+
+        time_preference = 0 if most_recent else -1
         try:
-            return self.map_object(response.json()['features'][0])
-        except:
+            return self.map_object(response.json()['features'][time_preference]) # most recent
+        except Exception as e:
+            print(e)
+            print(response.text)
             return None
+        
     
     def search_all(self, data: FloodEvent, dates: list) -> List[SARImage]:
         sar_images = []
-        for previous_days, max_range in dates:
-            img = self.search(data, previous_days=previous_days, max_range=max_range)
-            if img: sar_images += [img]
+        relative_orbit = None
+        most_recent = False
+        for ranges in dates:
+            previous_days = ranges[0]
+            max_range_before, max_range_after = ranges[1], ranges[1]
+            if len(ranges) > 2:
+                max_range_before = ranges[1]
+                max_range_after = ranges[2]
+            
+            # If first iteration (relative orbit None means first iteration) then select the more far image (because more near the flood event)
+            if relative_orbit is None: 
+                most_recent = False
+            
+            img = self.search(data, previous_days=previous_days, max_range_before=max_range_before, max_range_after=max_range_after, relative_orbit=relative_orbit, most_recent=most_recent)
+            if img:
+                if relative_orbit is None: relative_orbit = img.relative_orbit # set orbit preference
+                sar_images += [img]
 
         return sar_images
     
