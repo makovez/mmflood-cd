@@ -1,6 +1,6 @@
 # MMFlood-CD
 
-The aim of this project is to augment the mmflood dataset by incorporating pre-flood images. The dataset will include the following information for each image:
+The aim of this project is to augment the mmflood dataset by incorporating pre-flood images.
 
 A demo of the dataset is available to view here: https://optuna.cokyc.it
 
