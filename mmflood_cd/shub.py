@@ -118,6 +118,10 @@ class Shub:
         # Read the data and apply 10 * log(x) transformation
         ch1, ch2 = data.read(1), data.read(2)
 
+        # Replace nan values with 0
+        ch1[np.isnan(ch1)] = 0
+        ch2[np.isnan(ch2)] = 0
+
         # Stretch images to minmax with 2% and 98% percentile
         ch1_min, ch1_max = np.percentile(ch1, (2, 98))
         ch2_min, ch2_max = np.percentile(ch2, (2, 98))
