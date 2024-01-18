@@ -75,8 +75,9 @@ class Shub:
                                 "to": image_date.end_date
                             },
                             "processing": {
-                            "orthorectify": True,
-                            "demInstance": "MAPZEN"
+                                "backCoeff": "GAMMA0_TERRAIN",
+                                "orthorectify": True,
+                                "demInstance": "MAPZEN"
                             },
                             "polarization": "DV",
                             "acquisitionMode": "IW",
