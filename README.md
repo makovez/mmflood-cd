@@ -14,7 +14,7 @@ client_id: <client id>
 3. Run main.py to download the images from the api, using metadata.json which contains same flood events of MMFlood dataset
 
 ### Notes
-All the images are without speckle filtering applied, with orthorectification (with MAPZEN Dem) and with gamma0 ellipsoid as backscatter. You can learn more on the GRD product type from https://docs.sentinel-hub.com/api/latest/data/sentinel-1-grd/
+All the images are without speckle filtering applied, with orthorectification (with MAPZEN Dem) and with gamma0 terrain as backscatter because with terrain correction applied. You can learn more on the GRD product type from https://docs.sentinel-hub.com/api/latest/data/sentinel-1-grd/
 
 You can play with requests builder to learn more about the different parameters https://apps.sentinel-hub.com/requests-builder/
 
