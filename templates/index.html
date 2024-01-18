@@ -135,17 +135,32 @@
         const container = document.getElementById("container");
         const modal = document.getElementById("myModal");
         const timeSeriesContainer = document.getElementById("timeSeriesContainer");
+        let renderedCount = 0;
+        let dataset = [];
 
         document.addEventListener("DOMContentLoaded", function () {
-            // Fetch data from the API endpoint
-            fetch("/api/data")
-                .then(response => response.json())
-                .then(data => renderBoundingBoxes(data));
+            // Fetch initial data from the API endpoint
+            fetchAndRenderData("/api/data");
         });
 
+
+        function fetchAndRenderData(url) {
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    dataset = data;
+                    renderBoundingBoxes();
+                    observeScroll();
+                });
+        }
+
         // Function to render bounding boxes
-        function renderBoundingBoxes(dataset) {
-            dataset.forEach(emsrEvent => {
+        function renderBoundingBoxes() {
+            const elementsToRender = 100;
+            const end = Math.min(renderedCount + elementsToRender, dataset.length);
+
+            for (let i = renderedCount; i < end; i++) {
+                const emsrEvent = dataset[i];
                 const boundingBoxElement = document.createElement("div");
                 const filteredImages = emsrEvent.images.filter(image => image.preview_image !== null);
                 const numberOfImages = filteredImages.length;
@@ -161,7 +176,32 @@
                 `;
                 boundingBoxElement.addEventListener("click", () => showTimeSeries(emsrEvent));
                 container.appendChild(boundingBoxElement);
-            });
+            }
+            renderedCount += elementsToRender;
+        }
+
+        function observeScroll() {
+            const options = {
+                root: null,
+                rootMargin: "0px",
+                threshold: 0.5,
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        // Load more data when user scrolls to the bottom
+                        fetchAndRenderData("/api/data");
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, options);
+
+            // Observe the last element in the container
+            const lastElement = container.lastElementChild;
+            if (lastElement) {
+                observer.observe(lastElement);
+            }
         }
 
         // Function to show time series
