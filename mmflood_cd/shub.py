@@ -126,8 +126,8 @@ class Shub:
         ch1_min, ch1_max = np.percentile(ch1, (2, 98))
         ch2_min, ch2_max = np.percentile(ch2, (2, 98))
         
-        ch1_stretched = np.clip((ch1 - ch1_min) / (ch1_max - ch1_min), 0, 1)
-        ch2_stretched = np.clip((ch2 - ch2_min) / (ch2_max - ch2_min), 0, 1)
+        ch1_stretched = np.clip((ch1 - ch1_min) / (ch1_max - ch1_min + 1e-8), 0, 1)
+        ch2_stretched = np.clip((ch2 - ch2_min) / (ch2_max - ch2_min + 1e-8), 0, 1)
 
         # Convert to 8-bit for saving as JPEG
         ch1_8bit = (ch1_stretched * 255).astype(np.uint8)
