@@ -7,7 +7,7 @@
 
 # start date example 2023-10-23T00:00:00Z, enddate example 2023-11-23T23:59:59Z
 
-import requests, os
+import os
 import yaml, rasterio, tarfile, io, json
 import numpy as np
 from rasterio.io import MemoryFile
@@ -15,8 +15,9 @@ from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 from typing import List, Union
 from mmflood_cd.models import Config, SARImage, FloodEvent
-from mmflood_cd.utils import generate_date_range, today, get_width_height, get_evalscript
+from mmflood_cd.utils import generate_date_range, today, get_width_height, get_evalscript, refresh_token_on_expire
 from PIL import Image
+
 
 class Shub:
     def __init__(self, config_file: str, root_path: str = 'data', fixed_path=None) -> None:
@@ -31,7 +32,8 @@ class Shub:
         os.makedirs(self.directory_path, exist_ok=True)
         self.set_token()
 
-    def is_processing_units_ok(self) -> bool:
+    @refresh_token_on_expire
+    def is_processing_units_ok(self):
         url = f"https://services.sentinel-hub.com/api/v1/accounting/usage"
         headers = {"Content-Type": "application/json"}
         response = self.oauth.get(url, headers=headers)
@@ -59,7 +61,8 @@ class Shub:
         print(f"Token: {token}")
         return self.oauth
     
-    def get_image(self, flood_event: FloodEvent, sar_image: SARImage, prod_type: str = "sentinel-1-grd", retry = 0) -> requests.Response:
+    @refresh_token_on_expire
+    def get_image(self, flood_event: FloodEvent, sar_image: SARImage, prod_type: str = "sentinel-1-grd", retry = 0):
         image_date = generate_date_range(sar_image.acquisition_date, previous_days=0, max_range_before=1, max_range_after=1)
         #width, height = get_width_height(flood_event)
         data = {

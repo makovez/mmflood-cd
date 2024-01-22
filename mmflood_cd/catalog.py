@@ -3,7 +3,7 @@ from requests_oauthlib import OAuth2Session
 import yaml, requests
 from typing import List
 from mmflood_cd.models import Config, FloodEvent, SARImage
-from mmflood_cd.utils import generate_date_range
+from mmflood_cd.utils import generate_date_range, refresh_token_on_expire
 
 class Catalog:
     def __init__(self, config_file: str) -> None:
@@ -31,8 +31,8 @@ class Catalog:
     def map_object(self, sar_dict) -> SARImage:
         return SARImage(**sar_dict['properties'], **sar_dict)  
     
+    @refresh_token_on_expire
     def search(self, data: FloodEvent, prod_type: str = "sentinel-1-grd", previous_days=30, max_range_before=7, max_range_after=7, relative_orbit = None, most_recent = True) -> SARImage:
-
         
         image_date = generate_date_range(data.event_date, previous_days=previous_days, max_range_before=max_range_before, max_range_after=max_range_after)
         data = {

@@ -2,9 +2,9 @@ from datetime import datetime, timedelta
 from mmflood_cd.models import FloodEvent, ImageDate
 from datetime import datetime
 
-import pyproj, os, json
+import pyproj, os, json, time
 
-
+from oauthlib.oauth2.rfc6749.errors import TokenExpiredError
 def generate_date_range(start_date_str, previous_days=30, max_range_before=7, max_range_after = 7):
     # Convert the input date string to a datetime object
     format_date = "%Y-%m-%dT%H:%M:%SZ" if 'Z' in start_date_str else "%Y-%m-%dT%H:%M:%S"
@@ -86,3 +86,20 @@ def get_flood_events(root='emsr', preview_pathname='preview_image'):
 
 
     return [event for event in flood_events]
+
+def refresh_token_on_expire(func):
+    def wrapper(self, *args, **kwargs):
+        retries = 0
+        while retries < 3:
+            try:
+                result = func(self, *args, **kwargs)
+                return result
+            except TokenExpiredError as e:
+                print(f"Exception caught: {e}")
+                print(f"Reresh token")
+                # Access self and call the set_token method
+                self.set_token()
+                retries += 1
+        raise Exception(f"Function {func.__name__} failed after {3} retries")
+
+    return wrapper
