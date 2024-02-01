@@ -109,6 +109,10 @@
             max-width: 300px;
         }
 
+        .copy-text {
+            color: blue;
+        }
+
     </style>
 </head>
 
@@ -233,6 +237,31 @@
             countryParagraph.textContent = `Country: ${emsrEvent.country}`;
             mmflood_info.appendChild(countryParagraph);
 
+            const widthHeight = document.createElement("p");
+            widthHeight.textContent = `w,h => ${emsrEvent.width}, ${emsrEvent.height}`;
+            mmflood_info.appendChild(widthHeight);
+
+
+            // Create a clickable text element for copying the specified string
+            const copyTextElement = document.createElement("p");
+            copyTextElement.className = "copy-text";
+            copyTextElement.textContent = "Copy Coordinates";
+            copyTextElement.style.cursor = "pointer";
+            copyTextElement.addEventListener("click", () => {
+                const coordinatesString = `[${emsrEvent.left}, ${emsrEvent.bottom}, ${emsrEvent.right}, ${emsrEvent.top}]`;
+
+                // Create a temporary textarea element to copy the text
+                const tempTextArea = document.createElement("textarea");
+                tempTextArea.value = coordinatesString;
+                document.body.appendChild(tempTextArea);
+                tempTextArea.select();
+                document.execCommand("copy");
+                document.body.removeChild(tempTextArea);
+
+                alert("Coordinates copied to clipboard!");
+            });
+            mmflood_info.appendChild(copyTextElement);
+
             // Create and append the eventDate paragraph
             const emsLink = document.createElement("a");
             emsLink.textContent = 'Go to ems';
@@ -284,6 +313,8 @@
                 const relativeOrbitElement = document.createElement("p");
                 relativeOrbitElement.textContent = `Relative Orbit: ${image.relative_orbit}`;
                 imageContainer.appendChild(relativeOrbitElement);
+
+                
 
                 // Create a div element for the overlay
                 const overlayElement = document.createElement("div");
