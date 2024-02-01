@@ -1,9 +1,19 @@
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 import yaml, requests
-from typing import List
-from mmflood_cd.models import Config, FloodEvent, SARImage
+from typing import List, Union
+from mmflood_cd.models import Config, FloodEvent, SARImage, MultiSpectralImage
 from mmflood_cd.utils import generate_date_range, refresh_token_on_expire
+
+
+prods = {
+    'sentinel-1-grd': {
+        'filter':"sar:instrument_mode=\'IW\'"
+    },
+    'sentinel-2-l2a': {
+        'filter':'eo:cloud_cover<5'
+    }
+}
 
 class Catalog:
     def __init__(self, config_file: str) -> None:
@@ -28,8 +38,12 @@ class Catalog:
         print(f"Token: {token}")
         return self.oauth
     
-    def map_object(self, sar_dict) -> SARImage:
-        return SARImage(**sar_dict['properties'], **sar_dict)  
+    def map_object(self, dict, prod_type) -> Union[SARImage, MultiSpectralImage]:
+        print(dict['properties'])
+        if prod_type == 'sentinel-1-grd':
+            return SARImage(**dict['properties'], **dict)
+        else:
+            return MultiSpectralImage(**dict['properties'], **dict)
     
     @refresh_token_on_expire
     def search(self, data: FloodEvent, prod_type: str = "sentinel-1-grd", previous_days=30, max_range_before=7, max_range_after=7, relative_orbit = None, most_recent = True) -> SARImage:
@@ -40,7 +54,7 @@ class Catalog:
             "datetime": f"{image_date.start_date}/{image_date.end_date}",
             "collections": [prod_type],
             "limit": 100,
-            "filter": "sar:instrument_mode=\'IW\'"
+            "filter": prods[prod_type]['filter']
         }
 
         url = "https://services.sentinel-hub.com/api/v1/catalog/1.0.0/search"
@@ -51,11 +65,11 @@ class Catalog:
         if relative_orbit:
             for image in response.json()['features']:
                 if image['properties']['sat:relative_orbit'] == relative_orbit:
-                    return self.map_object(image) # get orbit preference
+                    return self.map_object(image, prod_type) # get orbit preference
 
         time_preference = 0 if most_recent else -1
         try:
-            return self.map_object(response.json()['features'][time_preference]) # most recent
+            return self.map_object(response.json()['features'][time_preference], prod_type) # most recent
         except Exception as e:
             print(e)
             print(response.text)
@@ -84,4 +98,3 @@ class Catalog:
 
         return sar_images
     
-

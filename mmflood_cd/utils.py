@@ -54,10 +54,13 @@ def get_width_height(flood_data: FloodEvent, resolution = 10):
     return width, height
 
 
-def get_evalscript():
-    with open('mmflood_cd/evalscript.js') as f:
-        data = f.read()
-    
+def get_evalscript(prod_type):
+    if prod_type == 'sentinel-1-grd':
+        with open('mmflood_cd/evalscript/sentinel_1_grd.js') as f:
+            data = f.read()
+    else:
+        with open('mmflood_cd/evalscript/sentinel_2_l2a.js') as f:
+            data = f.read()
     return data
 
 def get_flood_events(root='emsr', preview_pathname='preview_image'):

@@ -15,7 +15,7 @@ class SARImage(BaseModel):
     acquisition_date: str = Field(alias='datetime')
     orbit_direction: str = Field(alias='sat:orbit_state')
     absolute_orbit: int = Field(alias='sat:absolute_orbit')
-    relative_orbit:int = Field(alias='sat:relative_orbit')
+    relative_orbit: int = Field(alias='sat:relative_orbit')
     instrument_mode: str = Field(alias='sar:instrument_mode')
     polarization: str = Field(alias='s1:polarization')
     preview_image: Optional[str] = None
@@ -24,7 +24,17 @@ class SARImage(BaseModel):
         populate_by_name=True,
     )
         
-    
+class MultiSpectralImage(BaseModel):
+    id: str
+    acquisition_date: str = Field(alias='datetime')
+    cloud_cover: float = Field(alias='eo:cloud_cover')
+    proj_epsg: int = Field(alias='proj:epsg')
+    gsd: int = Field(alias='gsd')
+    preview_image: Optional[str] = None
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
 
 class FloodEvent(BaseModel):
     name: str
