@@ -82,7 +82,10 @@ class Shub:
         data = {
             "input": {
                 "bounds": {
-                    "bbox": flood_event.bbox()
+                    "bbox": flood_event.bbox(),
+                    "properties": {
+                        "crs": "http://www.opengis.net/def/crs/EPSG/0/4326"
+                    }
                 },
                 "data": [
                     {
@@ -91,9 +94,8 @@ class Shub:
                                 "from": image_date.start_date,
                                 "to": image_date.end_date
                             },
-                            **prods_params[prod_type]
                         },
-                        
+                        **prods_params[prod_type],
                         "type": prod_type
                     }
                 ]
@@ -106,10 +108,6 @@ class Shub:
                     {
                         "identifier": "default",
                         "format": {"type": "image/tiff"},
-                    },
-                    {
-                        "identifier": "userdata",
-                        "format": {"type": "application/json"},
                     }
                 ]
             },
