@@ -2,7 +2,7 @@ from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 import yaml, requests
 from typing import List, Union
-from mmflood_cd.models import Config, FloodEvent, SARImage, MultiSpectralImage
+from mmflood_cd.models import Config, FloodEvent, SARImage, MultiSpectralImage, ImageDate, S1S2Fusion
 from mmflood_cd.utils import generate_date_range, refresh_token_on_expire
 
 
@@ -39,16 +39,18 @@ class Catalog:
         return self.oauth
     
     def map_object(self, dict, prod_type) -> Union[SARImage, MultiSpectralImage]:
-        print(dict['properties'])
         if prod_type == 'sentinel-1-grd':
             return SARImage(**dict['properties'], **dict)
         else:
             return MultiSpectralImage(**dict['properties'], **dict)
     
     @refresh_token_on_expire
-    def search(self, data: FloodEvent, prod_type: str = "sentinel-1-grd", previous_days=30, max_range_before=7, max_range_after=7, relative_orbit = None, most_recent = True) -> SARImage:
+    def search(self, data: Union[FloodEvent, S1S2Fusion], prod_type: str = "sentinel-1-grd", previous_days=30, max_range_before=7, max_range_after=7, 
+               relative_orbit = None, most_recent = True, image_date: ImageDate = None, all_prods=False) -> Union[SARImage, MultiSpectralImage]:
+    
+        if image_date is None:
+            image_date = generate_date_range(data.event_date, previous_days=previous_days, max_range_before=max_range_before, max_range_after=max_range_after)
         
-        image_date = generate_date_range(data.event_date, previous_days=previous_days, max_range_before=max_range_before, max_range_after=max_range_after)
         data = {
             "bbox": data.bbox(),
             "datetime": f"{image_date.start_date}/{image_date.end_date}",
@@ -69,14 +71,20 @@ class Catalog:
 
         time_preference = 0 if most_recent else -1
         try:
-            return self.map_object(response.json()['features'][time_preference], prod_type) # most recent
+            
+            if not all_prods: 
+                return self.map_object(response.json()['features'][time_preference], prod_type) # most recent
+            else:
+                all_prods = []
+                for prod in response.json()['features']:
+                    all_prods.append(self.map_object(prod, prod_type))
+                return all_prods
         except Exception as e:
-            print(e)
-            print(response.text)
+            # print(e)
             return None
         
     
-    def search_all(self, data: FloodEvent, dates: list) -> List[SARImage]:
+    def search_all(self, data: Union[FloodEvent, S1S2Fusion], dates: list) -> List[Union[SARImage, MultiSpectralImage]]:
         sar_images = []
         relative_orbit = None
         most_recent = False

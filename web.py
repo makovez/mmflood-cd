@@ -14,10 +14,10 @@ from scipy.stats import pearsonr
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-base_path = 'emsr'
-# Mount the "emsr" folder as a static folder
+base_path = 'emsr_rtx'
+# Mount the "emsr_rtx" folder as a static folder
 
-with open('emsr/flood_events.json', 'r') as f:
+with open('emsr_rtx/flood_events.json', 'r') as f:
     data = json.loads(f.read())
 
 def temporal_correlation_pearson(series1, series2):
@@ -36,7 +36,7 @@ def get_image(path):
     
 
 
-def get_flood_events(root='emsr', preview_pathname='preview_image'):
+def get_flood_events(root='emsr_rtx', preview_pathname='preview_image'):
     events_saved = os.listdir(root)
     flood_events = [FloodEvent(**event) for event in data if event['name'] in events_saved]
     for i, flood_event in tqdm(enumerate(flood_events.copy()), desc="Processing Flood Events", total=len(flood_events.copy())):
@@ -68,7 +68,7 @@ def get_flood_events(root='emsr', preview_pathname='preview_image'):
 flood_events = get_flood_events(root=base_path)
 
 print(len(flood_events))
-app.mount(f"/emsr", StaticFiles(directory=base_path), name=base_path)
+app.mount(f"/emsr_rtx", StaticFiles(directory=base_path), name=base_path)
 
 
 @app.get("/", response_class=HTMLResponse)

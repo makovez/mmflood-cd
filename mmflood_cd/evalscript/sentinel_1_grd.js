@@ -5,7 +5,6 @@ function setup() {
       input: [
         {
           bands: ["VV", "VH"],
-          metadata: ["bounds"],
         }
       ],
       output: [
@@ -17,13 +16,6 @@ function setup() {
       ],
       mosaicking: "Tile",
     };
-  }
-  
-  function updateOutputMetadata(scenes, inputMetadata, outputMetadata) {
-    outputMetadata.userData = {
-      "inputMetadata": inputMetadata
-    }
-    outputMetadata.userData["scenes"] = scenes
   }
   
   function evaluatePixel(samples) {

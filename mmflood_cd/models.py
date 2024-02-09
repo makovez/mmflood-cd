@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from pydantic import BaseModel, Field, ConfigDict
 
 class Config(BaseModel):
@@ -49,11 +49,29 @@ class FloodEvent(BaseModel):
     width: int
     height: int
     images: List[SARImage] = []
+    images_l2a: Optional[List[Union[MultiSpectralImage, None]]] = []
     preview_image: Optional[str] = None
     preview_mask: Optional[str] = None
 
     def bbox(self):
         return [self.left, self.bottom, self.right, self.top]
     
-    
 
+class S1S2Fusion(BaseModel):
+    event_date: str
+    name: str
+    country: str
+    left: float
+    bottom: float
+    right: float
+    top: float
+    width: int
+    height: int
+    s1_image: Optional[SARImage] = None
+    s2_image: Optional[MultiSpectralImage] = None
+    preview_s1: Optional[str] = None
+    preview_s2: Optional[str] = None
+
+    def bbox(self):
+        return [self.left, self.bottom, self.right, self.top]
+    

@@ -5,12 +5,12 @@ import json, os, sys
 with open('metadata.json', 'r') as file:
     images = json.load(file)
 
-catalog = Catalog('config.yaml')
-shub = Shub('config.yaml', fixed_path='EMSR-2')
+catalog = Catalog('config/config.yaml')
+shub = Shub('config/config.yaml', fixed_path='emsr_rtx')
 json_file_name = "flood_events.json"
 json_file_path = os.path.join(shub.directory_path, json_file_name)
 flood_events = []
-dates_image = [(0, 0, 7), (30, 7), (60, 7), (90, 7), (120, 7), (340, 7)]
+dates_image = [(0, 0, 7), (30, 7), (60, 7)]
 
 if os.path.exists(json_file_path):
     with open(json_file_path, 'r+') as json_file:

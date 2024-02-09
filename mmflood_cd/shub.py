@@ -14,7 +14,7 @@ from rasterio.io import MemoryFile
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 from typing import List, Union
-from mmflood_cd.models import Config, SARImage, FloodEvent, MultiSpectralImage
+from mmflood_cd.models import Config, SARImage, FloodEvent, MultiSpectralImage, ImageDate, S1S2Fusion
 from mmflood_cd.utils import generate_date_range, today, get_width_height, get_evalscript, refresh_token_on_expire
 from PIL import Image
 
@@ -33,6 +33,46 @@ prods_params = {
         "maxCloudCoverage": 40
     }
 }
+
+s2la_stats_evalscript =  """
+//VERSION=3
+function setup() {
+  return {
+    input: [{
+      bands: [
+        "CLM",
+        "dataMask",
+        "SCL"
+      ]
+    }],
+    output: [
+      {
+        id: "cloud",
+        bands: 1
+      },
+      {
+        id: "water",
+        bands: 1,
+        sampleType: "UINT8"
+      },
+      {
+        id: "dataMask",
+        bands: 1
+      }]
+  }
+}
+
+
+function evaluatePixel(samples) {
+    const is_water = (samples.SCL === 6) ? 1 : 0;
+    return {
+        cloud: [samples.CLM],
+        dataMask: [samples.dataMask],
+        water: [is_water]
+        }
+}
+"""
+
 class Shub:
     def __init__(self, config_file: str, root_path: str = 'data', fixed_path=None) -> None:
         self.config = self.read_config(config_file)
@@ -56,8 +96,8 @@ class Shub:
             processingUnitsOverage = response.json()['processingUnitsOverage']
             is_ok = int(requestsOverage['remaining']) > 200 and int(processingUnitsOverage['remaining']) > 200
         except Exception as e:
-            print(e)
-            print('error on cheking processing unit request')
+            # print(e)
+            # print('error on cheking processing unit request')
             return False
         return is_ok
 
@@ -76,8 +116,12 @@ class Shub:
         return self.oauth
     
     @refresh_token_on_expire
-    def get_image(self, flood_event: FloodEvent, image: Union[SARImage, MultiSpectralImage], prod_type: str = "sentinel-1-grd", retry = 0):
-        image_date = generate_date_range(image.acquisition_date, previous_days=0, max_range_before=1, max_range_after=1)
+    def get_image(self, flood_event: Union[FloodEvent, S1S2Fusion], image: Union[SARImage, MultiSpectralImage], prod_type: str = "sentinel-1-grd", 
+                  image_date: ImageDate = None, retry = 0):
+
+        if image_date is None:
+            image_date = generate_date_range(image.acquisition_date, previous_days=0, max_range_before=1, max_range_after=1)
+        
         #width, height = get_width_height(flood_event)
         data = {
             "input": {
@@ -160,16 +204,16 @@ class Shub:
         return rgb_image
 
         
-    def download_image(self, flood_event: FloodEvent, image: Union[SARImage, MultiSpectralImage], data: Union[bytes, bytearray], prod_type: str = "sentinel-1-grd") -> None:
+    def download_image(self, flood_event: Union[FloodEvent, S1S2Fusion], image: Union[SARImage, MultiSpectralImage], data: Union[bytes, bytearray], prod_type: str = "sentinel-1-grd") -> None:
         # tar = tarfile.open(fileobj=io.BytesIO(data))
         # userdata = json.load(tar.extractfile(tar.getmember('userdata.json')))
         # data = tar.extractfile(tar.getmember('default.tif'))
-        print(len(data))
+        # print(len(data))
         os.makedirs(os.path.join(self.directory_path, flood_event.name, 'preview_image'), exist_ok=True)
         with MemoryFile(data) as memfile:
             with memfile.open() as dataset:
                 left, bottom, right, top = dataset.bounds
-                print(f"Left: {left}, Bottom: {bottom}, Right: {right}, Top: {top}")
+                # print(f"Left: {left}, Bottom: {bottom}, Right: {right}, Top: {top}")
 
                 output_path = os.path.join(self.directory_path, flood_event.name)
                 with rasterio.open(os.path.join(output_path, image.id + '.tif'), 'w', **dataset.profile) as dst:
@@ -178,4 +222,48 @@ class Shub:
                 rgb_preview = self.generate_preview(dataset, prod_type=prod_type)
                 Image.fromarray(rgb_preview).save(os.path.join(output_path, 'preview_image', image.id + '.jpg'))
 
-    
+    def get_stats_l2a(self, flood_event: FloodEvent, th_cloud = 0.1, th_water = 0.01, previous_days=0, max_range_before=360, max_range_after=12) -> Union[None, ImageDate]:
+        image_date = generate_date_range(flood_event.event_date, previous_days=previous_days, max_range_before=max_range_before, max_range_after=max_range_after)
+        stats_request = {
+            "input": {
+                "bounds": {
+                    "bbox": flood_event.bbox()
+                },
+                "data": [
+                    {
+                        "type": "sentinel-2-l2a",
+                        "dataFilter": {
+                            "mosaickingOrder": "leastRecent"
+                        }
+                    }
+                ]
+            },
+            "aggregation": {
+                "timeRange": {
+                    "from": image_date.start_date,
+                    "to": image_date.end_date
+                },
+                "aggregationInterval": {
+                    "of": "P1D"
+                },
+                "evalscript": s2la_stats_evalscript,
+                "width": flood_event.width,
+                "height": flood_event.height
+            }
+        }
+
+        url = "https://services.sentinel-hub.com/api/v1/statistics"
+        response = self.oauth.post(url, headers={"Content-Type": "application/json"}, json=stats_request)
+        stats_json = response.json()
+        images_stats = [(data["interval"], data["outputs"]["cloud"]['bands']['B0']['stats']['mean'], data["outputs"]["water"]['bands']['B0']['stats']['mean'] ) for data in stats_json["data"]]
+        sorted_data = sorted(images_stats, key=lambda x: x[-1], reverse=True)
+        valid_images = []
+        for image in sorted_data:
+            image_date, cloud, water = image[0], float(image[1]), float(image[2])
+            if cloud > th_cloud:
+                continue
+            elif water > th_water:
+                valid_images.append(ImageDate(start_date=image_date['from'], end_date=image_date['to']))
+
+        return valid_images
+            
