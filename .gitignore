@@ -2,9 +2,12 @@
 *.tif
 *.jpg
 *.pyc
+*.json
+
 
 test*
 !config_example.yaml
 data/*
 emsr/*
 !data/.gitkeep
+!metadata.json
