@@ -63,10 +63,15 @@ def filter_and_sort_dates(s1_images: List[SARImage], s2_images: List[ImageDate])
 
     return sorted_pairs
 
+def update_dataset(s12_fusion):
+    s12_fusion_images.append(s12_fusion)
+    with open(json_file_path, 'w') as json_file:
+        json.dump([event.model_dump() for event in s12_fusion_images], json_file, indent=4)
 
 if not shub.is_processing_units_ok():
     print('Units finished')
     sys.exit(0)
+
 
 
 for entry in tqdm(images):
@@ -79,6 +84,7 @@ for entry in tqdm(images):
     s2_stats = shub.get_stats_l2a(s12_fusion, previous_days=previous_days, max_range_before=max_range_before, max_range_after=max_range_after)
 
     if not s2_stats: # Skip if not s2 images with enough water and without clouds
+        update_dataset(s12_fusion) # Preseverse images so that can be skipped
         continue
     
     images_s1 = catalog.search(s12_fusion, previous_days=previous_days, max_range_before=max_range_before, max_range_after=max_range_after, all_prods=True)
@@ -89,22 +95,27 @@ for entry in tqdm(images):
         s2_image = catalog.search(s12_fusion, image_date=s2_date, prod_type='sentinel-2-l2a')
         if not s2_image:
             continue
-        data = shub.get_image(s12_fusion, s2_image, prod_type='sentinel-2-l2a')
-        shub.download_image(s12_fusion, s2_image, data, prod_type='sentinel-2-l2a')
-        s12_fusion.s2_image = s2_image
+        data_s2 = shub.get_image(s12_fusion, s2_image, prod_type='sentinel-2-l2a')
         
+        if not data_s2:
+            continue
+    
         # Download s1 image
-        data = shub.get_image(s12_fusion, s1_image)
-        shub.download_image(s12_fusion, s1_image, data)
+        data_s1 = shub.get_image(s12_fusion, s1_image)
+        if not data_s1:
+            continue
+
+        shub.download_image(s12_fusion, s1_image, data_s1)
         s12_fusion.s1_image = s1_image
+        shub.download_image(s12_fusion, s2_image, data_s2, prod_type='sentinel-2-l2a')
+        s12_fusion.s2_image = s2_image
         break
 
     if not shub.is_processing_units_ok():
+        print('Units finished')
         break
 
-    s12_fusion_images.append(s12_fusion)
-    with open(json_file_path, 'w') as json_file:
-        json.dump([event.model_dump() for event in s12_fusion_images], json_file, indent=4)
+    update_dataset(s12_fusion)
 
 
 # file_path = 'metadata.json'

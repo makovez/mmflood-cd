@@ -256,7 +256,7 @@ class Shub:
         response = self.oauth.post(url, headers={"Content-Type": "application/json"}, json=stats_request)
         stats_json = response.json()
         images_stats = [(data["interval"], data["outputs"]["cloud"]['bands']['B0']['stats']['mean'], data["outputs"]["water"]['bands']['B0']['stats']['mean'] ) for data in stats_json["data"]]
-        sorted_data = sorted(images_stats, key=lambda x: x[-1], reverse=True)
+        sorted_data = sorted(images_stats, key=lambda x: float(x[-1]), reverse=True)
         valid_images = []
         for image in sorted_data:
             image_date, cloud, water = image[0], float(image[1]), float(image[2])
